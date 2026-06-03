@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.json.JsonObject
 
 class DiscordClient(
     config: DiscordConfig,
@@ -29,6 +30,9 @@ class DiscordClient(
     val gatewayEvents: Flow<GatewayEvent>
         get() = gatewayClient.events
 
+    val isGatewayConnected: Boolean
+        get() = gatewayClient.isConnected()
+
     fun connectGateway() {
         gatewayClient.connect()
     }
@@ -41,7 +45,13 @@ class DiscordClient(
         gatewayClient.sendPresence(status, activity)
     }
 
-    fun isGatewayConnected(): Boolean = gatewayClient.isConnected()
+    fun sendRichPresence(activity: JsonObject, status: String = "online") {
+        gatewayClient.sendRichPresence(activity, status)
+    }
+
+    fun clearPresence() {
+        gatewayClient.clearRichPresence()
+    }
 
     override fun close() {
         gatewayClient.destroy()
@@ -52,6 +62,7 @@ class DiscordClient(
         private var clientId: String = ""
         private var clientSecret: String? = null
         private var token: String? = null
+        private var isBot: Boolean = true
         private var intents: Set<com.discord.sdk.gateway.GatewayIntent> = setOf(
             com.discord.sdk.gateway.GatewayIntent.GUILDS,
             com.discord.sdk.gateway.GatewayIntent.GUILD_MESSAGES,
@@ -63,6 +74,7 @@ class DiscordClient(
         fun setClientId(clientId: String) = apply { this.clientId = clientId }
         fun setClientSecret(secret: String) = apply { this.clientSecret = secret }
         fun setToken(token: String) = apply { this.token = token }
+        fun setBot(isBot: Boolean) = apply { this.isBot = isBot }
         fun setIntents(intents: Set<com.discord.sdk.gateway.GatewayIntent>) = apply { this.intents = intents }
         fun setApiBaseUrl(url: String) = apply { this.apiBaseUrl = url }
         fun setGatewayUrl(url: String) = apply { this.gatewayUrl = url }
@@ -72,6 +84,7 @@ class DiscordClient(
                 clientId = clientId,
                 clientSecret = clientSecret,
                 token = token,
+                isBot = isBot,
                 intents = intents,
                 apiBaseUrl = apiBaseUrl,
                 gatewayUrl = gatewayUrl

@@ -55,11 +55,8 @@ class GatewayClient internal constructor(
             put("d", buildJsonObject {
                 put("since", JsonNull)
                 put("activities", buildJsonArray {
-                    activity?.let {
-                        add(buildJsonObject {
-                            put("name", JsonPrimitive(it.name))
-                            put("type", JsonPrimitive(it.type))
-                        })
+                    if (activity != null) {
+                        add(encodeActivity(activity))
                     }
                 })
                 put("status", JsonPrimitive(status))
@@ -68,6 +65,76 @@ class GatewayClient internal constructor(
         }
         wsClient?.send(json.encodeToString(payload))
     }
+
+    fun sendRichPresence(activity: JsonObject, status: String = "online") {
+        val payload = buildJsonObject {
+            put("op", JsonPrimitive(GatewayOpcode.PRESENCE_UPDATE.value))
+            put("d", buildJsonObject {
+                put("since", JsonNull)
+                put("activities", buildJsonArray { add(activity) })
+                put("status", JsonPrimitive(status))
+                put("afk", JsonPrimitive(false))
+            })
+        }
+        wsClient?.send(json.encodeToString(payload))
+    }
+
+    fun clearRichPresence() {
+        val payload = buildJsonObject {
+            put("op", JsonPrimitive(GatewayOpcode.PRESENCE_UPDATE.value))
+            put("d", buildJsonObject {
+                put("since", JsonNull)
+                put("activities", buildJsonArray())
+                put("status", JsonPrimitive("online"))
+                put("afk", JsonPrimitive(false))
+            })
+        }
+        wsClient?.send(json.encodeToString(payload))
+    }
+
+    private fun encodeActivity(activity: Activity): JsonElement {
+        return buildJsonObject {
+            put("name", JsonPrimitive(activity.name))
+            put("type", JsonPrimitive(activity.type))
+            activity.url?.let { put("url", JsonPrimitive(it)) }
+            activity.state?.let { put("state", JsonPrimitive(it)) }
+            activity.details?.let { put("details", JsonPrimitive(it)) }
+            activity.timestamps?.let { ts ->
+                put("timestamps", buildJsonObject {
+                    ts.start?.let { put("start", JsonPrimitive(it)) }
+                    ts.end?.let { put("end", JsonPrimitive(it)) }
+                })
+            }
+            activity.assets?.let { a ->
+                put("assets", buildJsonObject {
+                    a.largeImage?.let { put("large_image", JsonPrimitive(it)) }
+                    a.largeText?.let { put("large_text", JsonPrimitive(it)) }
+                    a.smallImage?.let { put("small_image", JsonPrimitive(it)) }
+                    a.smallText?.let { put("small_text", JsonPrimitive(it)) }
+                })
+            }
+            activity.party?.let { p ->
+                put("party", buildJsonObject {
+                    p.id?.let { put("id", JsonPrimitive(it)) }
+                    p.size?.let { put("size", buildJsonArray { it.forEach { add(JsonPrimitive(it)) } }) }
+                })
+            }
+            activity.secrets?.let { s ->
+                put("secrets", buildJsonObject {
+                    s.join?.let { put("join", JsonPrimitive(it)) }
+                    s.spectate?.let { put("spectate", JsonPrimitive(it)) }
+                    s.match?.let { put("match", JsonPrimitive(it)) }
+                })
+            }
+            activity.instance?.let { put("instance", JsonPrimitive(it)) }
+            activity.flags?.let { put("flags", JsonPrimitive(it)) }
+            activity.buttons?.let { btns ->
+                put("buttons", buildJsonArray { btns.forEach { add(JsonPrimitive(it)) } })
+            }
+        }
+    }
+
+    internal fun sendRaw(payload: String): Boolean = wsClient?.send(payload) ?: false
 
     private suspend fun handleRaw(raw: String) {
         try {
@@ -118,23 +185,24 @@ class GatewayClient internal constructor(
     }
 
     private fun identify() {
-        val identifyData = IdentifyData(
-            token = config.token ?: "",
-            intents = GatewayIntent.calculateIntents(config.intents)
-        )
+        val token = config.token ?: return
         val payload = buildJsonObject {
             put("op", JsonPrimitive(GatewayOpcode.IDENTIFY.value))
             put("d", buildJsonObject {
-                put("token", JsonPrimitive(identifyData.token))
+                put("token", JsonPrimitive(token))
                 put("properties", buildJsonObject {
-                    put("os", JsonPrimitive(identifyData.properties.os))
-                    put("browser", JsonPrimitive(identifyData.properties.browser))
-                    put("device", JsonPrimitive(identifyData.properties.device))
+                    put("os", JsonPrimitive("android"))
+                    put("browser", JsonPrimitive("ArchiveTune"))
+                    put("device", JsonPrimitive("ArchiveTune"))
                 })
-                put("compress", JsonPrimitive(identifyData.compress))
-                put("large_threshold", JsonPrimitive(identifyData.largeThreshold))
-                put("guild_subscriptions", JsonPrimitive(identifyData.guildSubscriptions))
-                put("intents", JsonPrimitive(identifyData.intents))
+                put("compress", JsonPrimitive(false))
+                put("large_threshold", JsonPrimitive(50))
+                if (config.isBot) {
+                    put("intents", JsonPrimitive(GatewayIntent.calculateIntents(config.intents)))
+                    put("guild_subscriptions", JsonPrimitive(false))
+                } else {
+                    put("capabilities", JsonPrimitive(16381))
+                }
             })
         }
         wsClient?.send(json.encodeToString(payload))

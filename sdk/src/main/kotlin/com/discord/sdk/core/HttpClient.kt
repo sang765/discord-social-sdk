@@ -45,7 +45,8 @@ internal class DiscordHttpClient(
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
             config.token?.let {
-                request.header("Authorization", "Bot $it")
+                val authScheme = if (config.isBot) "Bot" else "Bearer"
+                request.header("Authorization", "$authScheme $it")
             }
             chain.proceed(request.build())
         }

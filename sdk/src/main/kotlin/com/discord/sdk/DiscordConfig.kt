@@ -6,6 +6,7 @@ data class DiscordConfig(
     val clientId: String,
     val clientSecret: String? = null,
     val token: String? = null,
+    val isBot: Boolean = true,
     val intents: Set<GatewayIntent> = setOf(
         GatewayIntent.GUILDS,
         GatewayIntent.GUILD_MESSAGES,
