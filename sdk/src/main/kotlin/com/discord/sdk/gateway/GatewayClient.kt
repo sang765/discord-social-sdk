@@ -24,6 +24,8 @@ class GatewayClient internal constructor(
     private val _events = MutableSharedFlow<GatewayEvent>(replay = 0, extraBufferCapacity = 64)
     val events: Flow<GatewayEvent> = _events.asSharedFlow()
 
+    private val json = httpClient.json
+
     fun connect() {
         if (connected) return
         wsClient = WebSocketClient(
@@ -82,7 +84,7 @@ class GatewayClient internal constructor(
             put("op", JsonPrimitive(GatewayOpcode.PRESENCE_UPDATE.value))
             put("d", buildJsonObject {
                 put("since", JsonNull)
-                put("activities", buildJsonArray())
+                put("activities", buildJsonArray { })
                 put("status", JsonPrimitive("online"))
                 put("afk", JsonPrimitive(false))
             })
