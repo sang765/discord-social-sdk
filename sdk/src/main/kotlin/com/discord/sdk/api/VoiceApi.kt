@@ -2,6 +2,7 @@ package com.discord.sdk.api
 
 import com.discord.sdk.core.DiscordHttpClient
 import com.discord.sdk.model.*
+import kotlinx.serialization.json.*
 
 class VoiceApi internal constructor(
     private val http: DiscordHttpClient
@@ -32,12 +33,12 @@ class VoiceApi internal constructor(
         suppress: Boolean? = null,
         requestToSpeakTimestamp: String? = null
     ): Result<Unit> = runCatching {
-        val req = buildMap<String, Any> {
-            channelId?.let { put("channel_id", it.value) }
-            suppress?.let { put("suppress", it) }
-            requestToSpeakTimestamp?.let { put("request_to_speak_timestamp", it) }
+        val req = buildJsonObject {
+            channelId?.let { put("channel_id", JsonPrimitive(it.value)) }
+            suppress?.let { put("suppress", JsonPrimitive(it)) }
+            requestToSpeakTimestamp?.let { put("request_to_speak_timestamp", JsonPrimitive(it)) }
         }
-        val body = http.json.encodeToString(req)
+        val body = req.toString()
         http.patch("/guilds/${guildId.value}/voice-states/@me", body).getOrThrow()
     }
 }

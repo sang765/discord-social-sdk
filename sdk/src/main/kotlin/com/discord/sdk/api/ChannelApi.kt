@@ -2,6 +2,7 @@ package com.discord.sdk.api
 
 import com.discord.sdk.core.DiscordHttpClient
 import com.discord.sdk.model.*
+import kotlinx.serialization.json.*
 
 class ChannelApi internal constructor(
     private val http: DiscordHttpClient
@@ -22,17 +23,17 @@ class ChannelApi internal constructor(
         userLimit: Int? = null,
         parentId: Snowflake? = null
     ): Result<Channel> = runCatching {
-        val req = buildMap<String, Any> {
-            name?.let { put("name", it) }
-            topic?.let { put("topic", it) }
-            position?.let { put("position", it) }
-            nsfw?.let { put("nsfw", it) }
-            rateLimitPerUser?.let { put("rate_limit_per_user", it) }
-            bitrate?.let { put("bitrate", it) }
-            userLimit?.let { put("user_limit", it) }
-            parentId?.let { put("parent_id", it.value) }
+        val req = buildJsonObject {
+            name?.let { put("name", JsonPrimitive(it)) }
+            topic?.let { put("topic", JsonPrimitive(it)) }
+            position?.let { put("position", JsonPrimitive(it)) }
+            nsfw?.let { put("nsfw", JsonPrimitive(it)) }
+            rateLimitPerUser?.let { put("rate_limit_per_user", JsonPrimitive(it)) }
+            bitrate?.let { put("bitrate", JsonPrimitive(it)) }
+            userLimit?.let { put("user_limit", JsonPrimitive(it)) }
+            parentId?.let { put("parent_id", JsonPrimitive(it.value)) }
         }
-        val body = http.json.encodeToString(req)
+        val body = req.toString()
         val json = http.patch("/channels/${channelId.value}", body).getOrThrow()
         http.json.decodeFromString<Channel>(json)
     }
@@ -65,31 +66,31 @@ class ChannelApi internal constructor(
         channelId: Snowflake,
         request: MessageCreateRequest
     ): Result<Message> = runCatching {
-        val req = buildMap<String, Any?> {
-            request.content?.let { put("content", it) }
-            request.tts?.let { put("tts", it) }
-            request.components?.let { put("components", it) }
-            request.stickerIds?.let { put("sticker_ids", it.map { s -> s.value }) }
-            request.flags?.let { put("flags", it) }
-            request.embeds?.let { put("embeds", it) }
+        val req = buildJsonObject {
+            request.content?.let { put("content", JsonPrimitive(it)) }
+            request.tts?.let { put("tts", JsonPrimitive(it)) }
+            request.components?.let { put("components", JsonArray(it.map { componentToJson(it) })) }
+            request.stickerIds?.let { put("sticker_ids", JsonArray(it.map { JsonPrimitive(it.value) })) }
+            request.flags?.let { put("flags", JsonPrimitive(it)) }
+            request.embeds?.let { put("embeds", JsonArray(it.map { embedToJson(it) })) }
             request.allowedMentions?.let {
-                put("allowed_mentions", mapOf(
-                    "parse" to it.parse,
-                    "roles" to it.roles.map { r -> r.value },
-                    "users" to it.users.map { u -> u.value },
-                    "replied_user" to it.repliedUser
-                ))
+                put("allowed_mentions", buildJsonObject {
+                    put("parse", JsonArray(it.parse.map { p -> JsonPrimitive(p) }))
+                    put("roles", JsonArray(it.roles.map { r -> JsonPrimitive(r.value) }))
+                    put("users", JsonArray(it.users.map { u -> JsonPrimitive(u.value) }))
+                    put("replied_user", JsonPrimitive(it.repliedUser))
+                })
             }
             request.messageReference?.let {
-                put("message_reference", mapOf(
-                    "message_id" to it.messageId.value,
-                    "channel_id" to it.channelId?.value,
-                    "guild_id" to it.guildId?.value,
-                    "fail_if_not_exists" to it.failIfNotExists
-                ))
+                put("message_reference", buildJsonObject {
+                    put("message_id", JsonPrimitive(it.messageId.value))
+                    it.channelId?.let { c -> put("channel_id", JsonPrimitive(c.value)) }
+                    it.guildId?.let { g -> put("guild_id", JsonPrimitive(g.value)) }
+                    put("fail_if_not_exists", JsonPrimitive(it.failIfNotExists))
+                })
             }
-        }.filterValues { it != null }
-        val body = http.json.encodeToString(req)
+        }
+        val body = req.toString()
         val json = http.post("/channels/${channelId.value}/messages", body).getOrThrow()
         http.json.decodeFromString<Message>(json)
     }
@@ -100,7 +101,9 @@ class ChannelApi internal constructor(
     }
 
     suspend fun bulkDeleteMessages(channelId: Snowflake, messageIds: List<Snowflake>): Result<Unit> = runCatching {
-        val body = http.json.encodeToString(mapOf("messages" to messageIds.map { it.value }))
+        val body = buildJsonObject {
+            put("messages", JsonArray(messageIds.map { JsonPrimitive(it.value) }))
+        }.toString()
         http.post("/channels/${channelId.value}/messages/bulk-delete", body).getOrThrow()
     }
 
@@ -145,12 +148,12 @@ class ChannelApi internal constructor(
         autoArchiveDuration: Int = 60,
         type: Int? = null
     ): Result<Channel> = runCatching {
-        val req = mutableMapOf(
-            "name" to name,
-            "auto_archive_duration" to autoArchiveDuration.toString()
-        )
-        type?.let { req["type"] = it.toString() }
-        val body = http.json.encodeToString(req)
+        val req = buildJsonObject {
+            put("name", JsonPrimitive(name))
+            put("auto_archive_duration", JsonPrimitive(autoArchiveDuration))
+            type?.let { put("type", JsonPrimitive(it)) }
+        }
+        val body = req.toString()
         val endpoint = if (messageId != null) {
             "/channels/${channelId.value}/messages/${messageId.value}/threads"
         } else {
@@ -181,15 +184,22 @@ class ChannelApi internal constructor(
         temporary: Boolean = false,
         unique: Boolean = false
     ): Result<Map<String, Any>> = runCatching {
-        val req = mapOf(
-            "max_age" to maxAge,
-            "max_uses" to maxUses,
-            "temporary" to temporary,
-            "unique" to unique
-        )
-        val body = http.json.encodeToString(req)
+        val body = buildJsonObject {
+            put("max_age", JsonPrimitive(maxAge))
+            put("max_uses", JsonPrimitive(maxUses))
+            put("temporary", JsonPrimitive(temporary))
+            put("unique", JsonPrimitive(unique))
+        }.toString()
         val json = http.post("/channels/${channelId.value}/invites", body).getOrThrow()
         @Suppress("UNCHECKED_CAST")
         http.json.decodeFromString<Map<String, Any>>(json)
+    }
+
+    private fun componentToJson(component: Any): JsonElement {
+        return JsonPrimitive(component.toString())
+    }
+
+    private fun embedToJson(embed: Any): JsonElement {
+        return JsonPrimitive(embed.toString())
     }
 }

@@ -32,6 +32,11 @@ class DiscordOAuth2(
             "messages.read", "gdm.join",
             "rpc.activities.write", "relationships.read"
         )
+
+        fun generateState(): String {
+            val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+            return (1..32).map { chars.random() }.joinToString("")
+        }
     }
 
     data class OAuth2Result(
@@ -246,13 +251,6 @@ class DiscordOAuth2(
     }
 
     data class CodeResult(val code: String, val state: String?)
-
-    companion object {
-        fun generateState(): String {
-            val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-            return (1..32).map { chars.random() }.joinToString("")
-        }
-    }
 }
 
 @Serializable

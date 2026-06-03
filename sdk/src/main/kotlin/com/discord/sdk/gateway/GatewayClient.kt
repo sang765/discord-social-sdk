@@ -24,8 +24,6 @@ class GatewayClient internal constructor(
     private val _events = MutableSharedFlow<GatewayEvent>(replay = 0, extraBufferCapacity = 64)
     val events: Flow<GatewayEvent> = _events.asSharedFlow()
 
-    private val json = httpClient.json
-
     fun connect() {
         if (connected) return
         wsClient = WebSocketClient(
@@ -63,7 +61,7 @@ class GatewayClient internal constructor(
                 put("afk", JsonPrimitive(false))
             })
         }
-        wsClient?.send(json.encodeToString(payload))
+        wsClient?.send(payload.toString())
     }
 
     fun sendRichPresence(activity: JsonObject, status: String = "online") {
@@ -76,7 +74,7 @@ class GatewayClient internal constructor(
                 put("afk", JsonPrimitive(false))
             })
         }
-        wsClient?.send(json.encodeToString(payload))
+        wsClient?.send(payload.toString())
     }
 
     fun clearRichPresence() {
@@ -89,7 +87,7 @@ class GatewayClient internal constructor(
                 put("afk", JsonPrimitive(false))
             })
         }
-        wsClient?.send(json.encodeToString(payload))
+        wsClient?.send(payload.toString())
     }
 
     private fun encodeActivity(activity: Activity): JsonElement {
@@ -181,7 +179,7 @@ class GatewayClient internal constructor(
             put("op", JsonPrimitive(GatewayOpcode.HEARTBEAT.value))
             put("d", sequence?.let { JsonPrimitive(it) } ?: JsonNull)
         }
-        wsClient?.send(json.encodeToString(payload))
+        wsClient?.send(payload.toString())
     }
 
     private fun identify() {
@@ -205,7 +203,7 @@ class GatewayClient internal constructor(
                 }
             })
         }
-        wsClient?.send(json.encodeToString(payload))
+        wsClient?.send(payload.toString())
     }
 
     private suspend fun handleDispatch(type: String?, data: JsonElement?, raw: String) {
