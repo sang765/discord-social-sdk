@@ -1,7 +1,2 @@
-jdk:
-  - openjdk17
-before_install:
-  - sdk install build-tools 34.0.0
-  - sdk install platforms android-34
 install:
-  - ./gradlew :sdk:build :sdk:publishToMavenLocal --stacktrace
+  - ./gradlew :sdk:assembleRelease :sdk:publishToMavenLocal -x test --no-daemon
