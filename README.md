@@ -11,6 +11,29 @@ Lighter and simpler than Discord's native C++ SDK — pure Kotlin with minimal d
 - **Lightweight** — only 4 runtime dependencies (OkHttp, kotlinx-serialization, kotlinx-coroutines)
 - **Kotlin-first** — coroutines, Flow, sealed classes, type-safe builders
 
+## Installation
+
+Add JitPack to your project's `settings.gradle.kts`:
+
+```kotlin
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+```
+
+Add the dependency to your app's `build.gradle.kts`:
+
+```kotlin
+dependencies {
+    implementation("com.github.sang765:discord-social-sdk:v1.0.0")
+}
+```
+
 ## Quick Start
 
 ```kotlin
@@ -85,5 +108,11 @@ override fun onNewIntent(intent: Intent) {
 | OkHttp | 4.12.x | HTTP + WebSocket |
 | kotlinx-serialization | 1.6.x | JSON parsing |
 | kotlinx-coroutines | 1.8.x | Async operations |
+
+## Distribution
+
+Available via [JitPack](https://jitpack.io/#sang765/discord-social-sdk).
+
+Repository: [github.com/sang765/discord-social-sdk](https://github.com/sang765/discord-social-sdk)
 
 License: MIT
